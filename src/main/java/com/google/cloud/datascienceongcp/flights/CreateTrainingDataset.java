@@ -27,6 +27,8 @@ import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+
 /**
  * A starter example for writing Beam programs.
  *
@@ -47,22 +49,31 @@ public class CreateTrainingDataset {
   private static final Logger LOG = LoggerFactory.getLogger(CreateTrainingDataset.class);
 
   public static void main(String[] args) {
+    String[] events = {
+        "2015-09-20,AA,19805,AA,1572,13303,1330303,32467,MIA,12889,1288903,32211,LAS,2015-09-20T22:50:00,2015-09-20T04:03:00,313.00,19.00,2015-09-20T04:22:00,,,2015-09-21T04:08:00,,,0.00,,,2174.00,25.79527778,-80.29000000,-14400.0,36.08000000,-115.15222222,-25200.0,wheelsoff,2015-09-20T04:22:00",
+        "2015-09-20,AA,19805,AA,2495,11298,1129804,30194,DFW,12892,1289203,32575,LAX,2015-09-21T01:25:00,2015-09-20T06:04:00,279.00,15.00,2015-09-20T06:19:00,,,2015-09-21T04:55:00,,,0.00,,,1235.00,32.89722222,-97.03777778,-18000.0,33.94250000,-118.40805556,-25200.0,wheelsoff,2015-09-20T06:19:00",
+        "2015-09-20,AA,19805,AA,2342,11292,1129202,30325,DEN,13303,1330303,32467,MIA,2015-09-21T05:59:00,2015-09-20T06:33:00,34.00,14.00,2015-09-20T06:47:00,,,2015-09-20T09:47:00,,,0.00,,,1709.00,39.86166667,-104.67305556,-21600.0,25.79527778,-80.29000000,-14400.0,wheelsoff,2015-09-20T06:47:00"
+    };
+
     Pipeline p = Pipeline.create(
         PipelineOptionsFactory.fromArgs(args).withValidation().create());
 
-    p.apply(Create.of("Hello", "World"))
-    .apply(MapElements.via(new SimpleFunction<String, String>() {
-      @Override
-      public String apply(String input) {
-        return input.toUpperCase();
-      }
-    }))
-    .apply(ParDo.of(new DoFn<String, Void>() {
-      @ProcessElement
-      public void processElement(ProcessContext c)  {
-        LOG.info(c.element());
-      }
-    }));
+    p.apply(Create.of(Arrays.asList(events)))
+        .apply(ParDo.of(new DoFn<String, String>() {
+          @ProcessElement
+          public void processElement(ProcessContext c) throws Exception {
+            String input = c.element();
+            if (input.contains("MIA")) {
+              c.output(input);
+            }
+          }
+        }))
+        .apply(ParDo.of(new DoFn<String, Void>() {
+          @ProcessElement
+          public void processElement(ProcessContext c) throws Exception {
+            LOG.info(c.element());
+          }
+        }));
 
     p.run();
   }

@@ -68,17 +68,36 @@ public class CreateTrainingDataset_8_2_5 {
 
     p
         .apply("ReadLines", TextIO.read().from(options.getInput()))
-        .apply("FilterMIA", ParDo.of(new DoFn<String, String>() {
+        .apply("ParseFlights", ParDo.of(new DoFn<String, Flight>() {
           @ProcessElement
           public void processElement(ProcessContext c) throws Exception {
-            String input = c.element();
-            if (input.contains("MIA")) {
-              c.output(input);
+            String line = c.element();
+            Flight f = Flight.fromCsv(line);
+            if (f != null) {
+              c.output(f);
             }
           }
         }))
-        .apply("WriteFlights", TextIO.write().to(options.getOutput() + "flights2")
-            .withSuffix(".txt").withoutSharding());
+        .apply("GoodFlights", ParDo.of(new DoFn<Flight, Flight>() {
+          @ProcessElement
+          public void processElement(ProcessContext c) throws Exception {
+            Flight f = c.element();
+            if (f.isNotDiverted() && f.isNotCancelled()) {
+              c.output(f);
+            }
+          }
+        }))
+        .apply("ToCsv", ParDo.of(new DoFn<Flight, String>() {
+          @ProcessElement
+          public void processElement(ProcessContext c) {
+            Flight f = c.element();
+            if (f.getField(Flight.INPUTCORS.EVENT).equals("arrived")) {
+              c.output(f.toTrainingCsv());
+            }
+          }
+        }))
+        .apply("WriteFlights", TextIO.write().to(options.getOutput() + "flights3")
+            .withSuffix(".csv").withoutSharding());
 
     p.run();
   }

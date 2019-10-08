@@ -17,18 +17,18 @@ public class Flight {
   }
 
   public boolean isNotDiverted() {
-    String col = getField(INPUTCORS.DIVERTED);
+    var col = getField(INPUTCORS.DIVERTED);
     return col.length() == 0 || col.equals("0.00");
   }
 
   public boolean isNotCancelled() {
-    String col = getField(INPUTCORS.CANCELLED);
+    var col = getField(INPUTCORS.CANCELLED);
     return col.length() == 0 || col.equals("0.00");
   }
 
   public float[] getFloatFeatures() {
-    float[] result = new float[5];
-    int col = 0;
+    var result = new float[5];
+    var col = 0;
     result[col++] = Float.parseFloat(fields[INPUTCORS.DEP_DELAY.ordinal()]);
     result[col++] = Float.parseFloat(fields[INPUTCORS.TAXI_OUT.ordinal()]);
     result[col++] = Float.parseFloat(fields[INPUTCORS.DISTANCE.ordinal()]);
@@ -38,13 +38,13 @@ public class Flight {
   }
 
   public String toTrainingCsv() {
-    float[] features = this.getFloatFeatures();
-    float arrivalDelay = Float.parseFloat(fields[INPUTCORS.ARR_DELAY.ordinal()]);
-    boolean ontime = arrivalDelay < 15;
-    StringBuilder sb = new StringBuilder();
+    var features = this.getFloatFeatures();
+    var arrivalDelay = Float.parseFloat(fields[INPUTCORS.ARR_DELAY.ordinal()]);
+    var ontime = arrivalDelay < 15;
+    var sb = new StringBuilder();
     sb.append(ontime ? 1.0 : 0.0);
     sb.append(",");
-    for (int i = 0; i < features.length; ++i) {
+    for (var i = 0; i < features.length; ++i) {
       sb.append(features[i]);
       sb.append(",");
     }
@@ -53,7 +53,7 @@ public class Flight {
   }
 
   public static Flight fromCsv(String line) {
-    Flight f = new Flight();
+    var f = new Flight();
     f.fields = line.split(",");
     f.avgArrivalDelay = f.avgDepatureDelay = Float.NaN;
     if (f.fields.length == INPUTCORS.values().length) {

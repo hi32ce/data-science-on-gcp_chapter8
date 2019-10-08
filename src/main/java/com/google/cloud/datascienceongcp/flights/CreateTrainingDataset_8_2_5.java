@@ -62,17 +62,17 @@ public class CreateTrainingDataset_8_2_5 {
   }
 
   public static void main(String[] args) {
-    MyOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
+    var options = PipelineOptionsFactory.fromArgs(args).withValidation()
         .as(MyOptions.class);
-    Pipeline p = Pipeline.create(options);
+    var p = Pipeline.create(options);
 
     p
         .apply("ReadLines", TextIO.read().from(options.getInput()))
         .apply("ParseFlights", ParDo.of(new DoFn<String, Flight>() {
           @ProcessElement
           public void processElement(ProcessContext c) throws Exception {
-            String line = c.element();
-            Flight f = Flight.fromCsv(line);
+            var line = c.element();
+            var f = Flight.fromCsv(line);
             if (f != null) {
               c.output(f);
             }
@@ -81,7 +81,7 @@ public class CreateTrainingDataset_8_2_5 {
         .apply("GoodFlights", ParDo.of(new DoFn<Flight, Flight>() {
           @ProcessElement
           public void processElement(ProcessContext c) throws Exception {
-            Flight f = c.element();
+            var f = c.element();
             if (f.isNotDiverted() && f.isNotCancelled()) {
               c.output(f);
             }
@@ -90,7 +90,7 @@ public class CreateTrainingDataset_8_2_5 {
         .apply("ToCsv", ParDo.of(new DoFn<Flight, String>() {
           @ProcessElement
           public void processElement(ProcessContext c) {
-            Flight f = c.element();
+            var f = c.element();
             if (f.getField(Flight.INPUTCORS.EVENT).equals("arrived")) {
               c.output(f.toTrainingCsv());
             }

@@ -2,6 +2,11 @@ package com.google.cloud.datascienceongcp.flights;
 
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.DefaultCoder;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
+import java.time.ZonedDateTime;
+import java.util.regex.Pattern;
 
 @DefaultCoder(AvroCoder.class)
 public class Flight {
@@ -35,6 +40,20 @@ public class Flight {
     result[col++] = avgDepatureDelay;
     result[col++] = avgArrivalDelay;
     return result;
+  }
+
+  public float getFieldAsFloat(INPUTCORS inputcor) {
+    return Float.parseFloat(getField(inputcor));
+  }
+
+  private static DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+
+  public String getDepartureHour() {
+    var depTime = getField(INPUTCORS.DEP_TIME).replace('T', ' ');
+    var d = fmt.parseDateTime(depTime);
+    var offset = getFieldAsFloat(INPUTCORS.DEP_AIRPORT_TZOFFSET);
+    d = d.plusMinutes((int)(0.5 + offset)); // rounding?
+    return Integer.toString(d.getHourOfDay());
   }
 
   public String toTrainingCsv() {

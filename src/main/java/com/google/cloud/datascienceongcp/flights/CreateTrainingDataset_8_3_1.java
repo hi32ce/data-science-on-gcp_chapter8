@@ -24,7 +24,9 @@ import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.Mean;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +68,7 @@ public class CreateTrainingDataset_8_3_1 {
         .as(MyOptions.class);
     var p = Pipeline.create(options);
 
-    p
+    var flights = p
         .apply("ReadLines", TextIO.read().from(options.getInput()))
         .apply("ParseFlights", ParDo.of(new DoFn<String, Flight>() {
           @ProcessElement
@@ -86,17 +88,31 @@ public class CreateTrainingDataset_8_3_1 {
               c.output(f);
             }
           }
-        }))
-        .apply("ToCsv", ParDo.of(new DoFn<Flight, String>() {
+        }));
+
+    var delays = flights
+        .apply("airport:hour", ParDo.of(new DoFn<Flight, KV<String, Double>>() {
           @ProcessElement
           public void processElement(ProcessContext c) {
             var f = c.element();
-            if (f.getField(Flight.INPUTCORS.EVENT).equals("arrived")) {
-              c.output(f.toTrainingCsv());
+            if (f.getField(Flight.INPUTCORS.EVENT).equals("wheelsoff")) {
+              var key = f.getField(Flight.INPUTCORS.ORIGIN) + ":" + f.getDepartureHour();
+              var value = Double.valueOf(f.getFieldAsFloat(Flight.INPUTCORS.DEP_DELAY) + f.getFieldAsFloat(Flight.INPUTCORS.TAXI_OUT));
+              c.output(KV.of(key, value));
             }
           }
         }))
-        .apply("WriteFlights", TextIO.write().to(options.getOutput() + "flights3")
+        .apply("avgDepDelay", Mean.perKey());
+
+    delays
+        .apply("DelayToCsv", ParDo.of(new DoFn<KV<String, Double>, String>() {
+          @ProcessElement
+          public void processElement(ProcessContext c) throws Exception {
+            var kv = c.element();
+            c.output(kv.getKey() + "," + kv.getValue());
+          }
+        }))
+        .apply("WriteDelays", TextIO.write().to(options.getOutput() + "delays4")
             .withSuffix(".csv").withoutSharding());
 
     p.run();
